@@ -243,4 +243,9 @@
     <string name="biometric_prompt_private_key_title">秘密鍵を表示するために認証を行います</string>
     <string name="biometric_auth_error">認証に失敗</string>
     <string name="biometric_auth_error_reason">認証に失敗: %s</string>
+    <string name="spa_title">Single Packet Authorization (SPA)</string>
+    <string name="spa_enable">SPA を有効にする</string>
+    <string name="spa_port">SPA ポート (UDP)</string>
+    <string name="spa_key">SPA 事前共有キー</string>
+    <string name="spa_wait_ms">トンネル起動前の待機時間 (ms)</string>
 </resources>

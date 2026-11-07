@@ -22,6 +22,8 @@ import com.wireguard.android.backend.Tunnel
 import com.wireguard.android.configStore.ConfigStore
 import com.wireguard.android.databinding.ObservableSortedKeyedArrayList
 import com.wireguard.android.util.ErrorMessages
+import com.wireguard.android.util.SpaConfig
+import com.wireguard.android.util.SpaSender
 import com.wireguard.android.util.UserKnobs
 import com.wireguard.android.util.applicationScope
 import com.wireguard.config.Config
@@ -71,6 +73,7 @@ class TunnelManager(private val configStore: ConfigStore) : BaseObservable() {
                 withContext(Dispatchers.IO) { getBackend().setState(tunnel, Tunnel.State.DOWN, null) }
             try {
                 withContext(Dispatchers.IO) { configStore.delete(tunnel.name) }
+                SpaConfig.delete(tunnel.name)
             } catch (e: Throwable) {
                 if (originalState == Tunnel.State.UP)
                     withContext(Dispatchers.IO) { getBackend().setState(tunnel, Tunnel.State.UP, tunnel.config) }
@@ -176,7 +179,9 @@ class TunnelManager(private val configStore: ConfigStore) : BaseObservable() {
         try {
             if (originalState == Tunnel.State.UP)
                 withContext(Dispatchers.IO) { getBackend().setState(tunnel, Tunnel.State.DOWN, null) }
+            val oldName = tunnel.name
             withContext(Dispatchers.IO) { configStore.rename(tunnel.name, name) }
+            SpaConfig.rename(oldName, name)
             newName = tunnel.onNameChanged(name)
             if (originalState == Tunnel.State.UP)
                 withContext(Dispatchers.IO) { getBackend().setState(tunnel, Tunnel.State.UP, tunnel.config) }
@@ -198,6 +203,21 @@ class TunnelManager(private val configStore: ConfigStore) : BaseObservable() {
         var newState = tunnel.state
         var throwable: Throwable? = null
         try {
+            if (state == Tunnel.State.UP) {
+                val spa = SpaConfig.get(tunnel.name)
+                if (spa.enabled && spa.key.isNotBlank()) {
+                    try {
+                        val config = tunnel.getConfigAsync()
+                        val peer = config.peers.firstOrNull()
+                        val endpointHost = peer?.endpoint?.map { it.host }?.orElse(null)
+                        if (!endpointHost.isNullOrBlank()) {
+                            SpaSender.sendSpaPacket(endpointHost, spa.port, spa.key, spa.waitMs)
+                        }
+                    } catch (e: Throwable) {
+                        Log.w(TAG, "Failed to send SPA packet: ${e.message}")
+                    }
+                }
+            }
             newState = withContext(Dispatchers.IO) { getBackend().setState(tunnel, state, tunnel.getConfigAsync()) }
             if (newState == Tunnel.State.UP)
                 lastUsedTunnel = tunnel

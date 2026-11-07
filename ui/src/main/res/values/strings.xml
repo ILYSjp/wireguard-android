@@ -260,4 +260,9 @@
     <string name="biometric_prompt_private_key_title">Authenticate to view private key</string>
     <string name="biometric_auth_error">Authentication failure</string>
     <string name="biometric_auth_error_reason">Authentication failure: %s</string>
+    <string name="spa_title">Single Packet Authorization (SPA)</string>
+    <string name="spa_enable">Enable SPA</string>
+    <string name="spa_port">SPA Port (UDP)</string>
+    <string name="spa_key">SPA Secret Key</string>
+    <string name="spa_wait_ms">Wait time before tunnel up (ms)</string>
 </resources>

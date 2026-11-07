@@ -31,6 +31,8 @@ import com.wireguard.android.model.ObservableTunnel
 import com.wireguard.android.util.AdminKnobs
 import com.wireguard.android.util.BiometricAuthenticator
 import com.wireguard.android.util.ErrorMessages
+import com.wireguard.android.util.SpaConfig
+import com.wireguard.android.util.SpaSettings
 import com.wireguard.android.viewmodel.ConfigProxy
 import com.wireguard.config.Config
 import kotlinx.coroutines.launch
@@ -47,9 +49,28 @@ class TunnelEditorFragment : BaseFragment(), MenuProvider {
         binding?.config = ConfigProxy(config)
     }
 
+    private fun loadSpaSettings(tunnelName: String) {
+        val b = binding ?: return
+        val settings = SpaConfig.get(tunnelName)
+        b.spaEnableSwitch.isChecked = settings.enabled
+        b.spaPortText.setText(settings.port.toString())
+        b.spaKeyText.setText(settings.key)
+        b.spaWaitText.setText(settings.waitMs.toString())
+    }
+
+    private fun saveSpaSettings(tunnelName: String) {
+        val b = binding ?: return
+        val enabled = b.spaEnableSwitch.isChecked
+        val port = b.spaPortText.text?.toString()?.toIntOrNull() ?: 62201
+        val key = b.spaKeyText.text?.toString() ?: ""
+        val waitMs = b.spaWaitText.text?.toString()?.toLongOrNull() ?: 100L
+        SpaConfig.save(tunnelName, SpaSettings(enabled, port, key, waitMs))
+    }
+
     private fun onConfigSaved(savedTunnel: Tunnel, throwable: Throwable?) {
         val ctx = activity ?: Application.get()
         if (throwable == null) {
+            saveSpaSettings(savedTunnel.name)
             val message = ctx.getString(R.string.config_save_success, savedTunnel.name)
             Log.d(TAG, message)
             Toast.makeText(ctx, message, Toast.LENGTH_SHORT).show()
@@ -212,6 +233,7 @@ class TunnelEditorFragment : BaseFragment(), MenuProvider {
         binding!!.config = ConfigProxy()
         if (tunnel != null) {
             binding!!.name = tunnel!!.name
+            loadSpaSettings(tunnel!!.name)
             lifecycleScope.launch {
                 try {
                     onConfigLoaded(tunnel!!.getConfigAsync())
@@ -220,6 +242,7 @@ class TunnelEditorFragment : BaseFragment(), MenuProvider {
             }
         } else {
             binding!!.name = ""
+            loadSpaSettings("")
         }
     }
 
@@ -227,6 +250,7 @@ class TunnelEditorFragment : BaseFragment(), MenuProvider {
         val ctx = activity ?: Application.get()
         if (throwable == null) {
             tunnel = newTunnel
+            saveSpaSettings(tunnel!!.name)
             val message = ctx.getString(R.string.tunnel_create_success, tunnel!!.name)
             Log.d(TAG, message)
             Toast.makeText(ctx, message, Toast.LENGTH_SHORT).show()
@@ -255,6 +279,7 @@ class TunnelEditorFragment : BaseFragment(), MenuProvider {
             Log.d(TAG, "Attempting to save config of renamed tunnel " + tunnel!!.name)
             try {
                 renamedTunnel.setConfigAsync(newConfig)
+                saveSpaSettings(renamedTunnel.name)
                 onConfigSaved(renamedTunnel, null)
             } catch (e: Throwable) {
                 onConfigSaved(renamedTunnel, e)
