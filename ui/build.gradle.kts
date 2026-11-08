@@ -14,9 +14,9 @@ android {
         dataBinding = true
         viewBinding = true
     }
-    namespace = pkg
+    namespace = "com.wireguard.android"
     defaultConfig {
-        applicationId = pkg
+        applicationId = "com.wireguard.android.spa"
         minSdk = 24
         versionCode = providers.gradleProperty("wireguardVersionCode").get().toInt()
         versionName = providers.gradleProperty("wireguardVersionName").get()
@@ -41,8 +41,6 @@ android {
             }
         }
         debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
         }
         create("googleplay") {
             initWith(getByName("release"))
