@@ -57,7 +57,6 @@ object TunnelImporter {
 
             if (isZip) {
                 ZipInputStream(contentResolver.openInputStream(uri)).use { zip ->
-                    val reader = BufferedReader(InputStreamReader(zip, StandardCharsets.UTF_8))
                     var entry: ZipEntry?
                     while (true) {
                         entry = zip.nextEntry ?: break
@@ -75,18 +74,34 @@ object TunnelImporter {
                             continue
                         }
                         try {
-                            Config.parse(reader)
+                            val configText = zip.readBytes().toString(StandardCharsets.UTF_8)
+                            val config = Config.parse(ByteArrayInputStream(configText.toByteArray(StandardCharsets.UTF_8)))
+                            val spaSettings = SpaConfig.parseFromConfigText(configText)
+                            val nameCopy = name
+                            futureTunnels.add(async(SupervisorJob()) {
+                                val tunnel = Application.getTunnelManager().create(nameCopy, config)
+                                if (spaSettings.enabled || spaSettings.key.isNotBlank()) {
+                                    SpaConfig.save(nameCopy, spaSettings)
+                                }
+                                tunnel
+                            })
                         } catch (e: Throwable) {
                             throwables.add(e)
-                            null
-                        }?.let {
-                            val nameCopy = name
-                            futureTunnels.add(async(SupervisorJob()) { Application.getTunnelManager().create(nameCopy, it) })
                         }
                     }
                 }
             } else {
-                futureTunnels.add(async(SupervisorJob()) { Application.getTunnelManager().create(name, Config.parse(contentResolver.openInputStream(uri)!!)) })
+                val configText = contentResolver.openInputStream(uri)?.use { it.readBytes().toString(StandardCharsets.UTF_8) } ?: ""
+                val config = Config.parse(ByteArrayInputStream(configText.toByteArray(StandardCharsets.UTF_8)))
+                val spaSettings = SpaConfig.parseFromConfigText(configText)
+                val nameCopy = name
+                futureTunnels.add(async(SupervisorJob()) {
+                    val tunnel = Application.getTunnelManager().create(nameCopy, config)
+                    if (spaSettings.enabled || spaSettings.key.isNotBlank()) {
+                        SpaConfig.save(nameCopy, spaSettings)
+                    }
+                    tunnel
+                })
             }
 
             if (futureTunnels.isEmpty()) {

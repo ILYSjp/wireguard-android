@@ -7,6 +7,7 @@ package com.wireguard.android.configStore
 import android.content.Context
 import android.util.Log
 import com.wireguard.android.R
+import com.wireguard.android.util.SpaConfig
 import com.wireguard.config.BadConfigException
 import com.wireguard.config.Config
 import java.io.File
@@ -26,7 +27,9 @@ class FileConfigStore(private val context: Context) : ConfigStore {
         val file = fileFor(name)
         if (!file.createNewFile())
             throw IOException(context.getString(R.string.config_file_exists_error, file.name))
-        FileOutputStream(file, false).use { it.write(config.toWgQuickString().toByteArray(StandardCharsets.UTF_8)) }
+        val spaSettings = SpaConfig.get(name)
+        val fullConfigText = SpaConfig.appendToConfigText(config.toWgQuickString(), spaSettings)
+        FileOutputStream(file, false).use { it.write(fullConfigText.toByteArray(StandardCharsets.UTF_8)) }
         return config
     }
 
@@ -72,7 +75,9 @@ class FileConfigStore(private val context: Context) : ConfigStore {
         val file = fileFor(name)
         if (!file.isFile)
             throw FileNotFoundException(context.getString(R.string.config_not_found_error, file.name))
-        FileOutputStream(file, false).use { stream -> stream.write(config.toWgQuickString().toByteArray(StandardCharsets.UTF_8)) }
+        val spaSettings = SpaConfig.get(name)
+        val fullConfigText = SpaConfig.appendToConfigText(config.toWgQuickString(), spaSettings)
+        FileOutputStream(file, false).use { stream -> stream.write(fullConfigText.toByteArray(StandardCharsets.UTF_8)) }
         return config
     }
 

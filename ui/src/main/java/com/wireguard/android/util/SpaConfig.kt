@@ -55,5 +55,36 @@ object SpaConfig {
             .remove("${tunnelName}_wait_ms")
             .apply()
     }
+
+    /**
+     * Parses SPA parameters embedded as comments in WireGuard configuration text.
+     */
+    fun parseFromConfigText(text: String): SpaSettings {
+        val enabled = Regex("(?mi)^\\s*#\\s*SPA_ENABLED\\s*=\\s*true\\s*$").containsMatchIn(text)
+        val port = Regex("(?mi)^\\s*#\\s*SPA_PORT\\s*=\\s*(\\d+)").find(text)?.groupValues?.get(1)?.toIntOrNull() ?: 62201
+        val key = Regex("(?mi)^\\s*#\\s*SPA_KEY\\s*=\\s*([^\\r\\n]+)").find(text)?.groupValues?.get(1)?.trim() ?: ""
+        val waitMs = Regex("(?mi)^\\s*#\\s*SPA_WAIT_MS\\s*=\\s*(\\d+)").find(text)?.groupValues?.get(1)?.toLongOrNull() ?: 100L
+        return SpaSettings(enabled, port, key, waitMs)
+    }
+
+    /**
+     * Appends SPA parameters as comments to WireGuard configuration text.
+     */
+    fun appendToConfigText(baseConfigText: String, settings: SpaSettings): String {
+        if (!settings.enabled && settings.key.isBlank()) {
+            return baseConfigText
+        }
+        val spaLines = buildString {
+            appendLine("# SPA_ENABLED = ${settings.enabled}")
+            appendLine("# SPA_PORT = ${settings.port}")
+            appendLine("# SPA_KEY = ${settings.key}")
+            appendLine("# SPA_WAIT_MS = ${settings.waitMs}")
+        }
+        return if (baseConfigText.contains("[Interface]", ignoreCase = true)) {
+            baseConfigText.replaceFirst(Regex("(?i)(\\[Interface\\]\\r?\\n)"), "$1$spaLines")
+        } else {
+            baseConfigText + "\n" + spaLines
+        }
+    }
 }
 

@@ -15,6 +15,7 @@ import com.wireguard.android.util.AdminKnobs
 import com.wireguard.android.util.BiometricAuthenticator
 import com.wireguard.android.util.DownloadsFileSaver
 import com.wireguard.android.util.ErrorMessages
+import com.wireguard.android.util.SpaConfig
 import com.wireguard.android.util.activity
 import com.wireguard.android.util.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -53,8 +54,12 @@ class ZipExporterPreference(context: Context, attrs: AttributeSet?) : Preference
                     try {
                         ZipOutputStream(outputFile.outputStream).use { zip ->
                             for (i in configs.indices) {
-                                zip.putNextEntry(ZipEntry(tunnels[i].name + ".conf"))
-                                zip.write(configs[i].toWgQuickString().toByteArray(StandardCharsets.UTF_8))
+                                val tunnelName = tunnels[i].name
+                                val spaSettings = SpaConfig.get(tunnelName)
+                                val baseConfig = configs[i].toWgQuickString()
+                                val fullConfig = SpaConfig.appendToConfigText(baseConfig, spaSettings)
+                                zip.putNextEntry(ZipEntry("$tunnelName.conf"))
+                                zip.write(fullConfig.toByteArray(StandardCharsets.UTF_8))
                             }
                             zip.closeEntry()
                         }

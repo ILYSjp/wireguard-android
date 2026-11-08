@@ -13,6 +13,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.wireguard.android.Application
 import com.wireguard.android.R
 import com.wireguard.android.databinding.ConfigNamingDialogFragmentBinding
+import com.wireguard.android.util.SpaConfig
 import com.wireguard.config.BadConfigException
 import com.wireguard.config.Config
 import kotlinx.coroutines.launch
@@ -28,9 +29,14 @@ class ConfigNamingDialogFragment : DialogFragment() {
         val binding = binding ?: return
         val activity = activity ?: return
         val name = binding.tunnelNameText.text.toString()
+        val configText = arguments?.getString(KEY_CONFIG_TEXT) ?: ""
         activity.lifecycleScope.launch {
             try {
                 Application.getTunnelManager().create(name, config)
+                val spaSettings = SpaConfig.parseFromConfigText(configText)
+                if (spaSettings.enabled || spaSettings.key.isNotBlank()) {
+                    SpaConfig.save(name, spaSettings)
+                }
                 dismiss()
             } catch (e: Throwable) {
                 binding.tunnelNameTextLayout.error = e.message
