@@ -102,6 +102,16 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".tasker.TaskerPluginActivity"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="com.twofortyfouram.locale.intent.action.EDIT_SETTING" />
+            </intent-filter>
+        </activity>
+
         <provider
             android:name=".activity.LogViewerActivity$ExportedLogContentProvider"
             android:authorities="${applicationId}.exported-log"
@@ -133,6 +143,14 @@
                 <action android:name="com.wireguard.android.action.REFRESH_TUNNEL_STATES" />
                 <action android:name="com.wireguard.android.action.SET_TUNNEL_UP" />
                 <action android:name="com.wireguard.android.action.SET_TUNNEL_DOWN" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".tasker.TaskerPluginReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.twofortyfouram.locale.intent.action.FIRE_SETTING" />
             </intent-filter>
         </receiver>
 
